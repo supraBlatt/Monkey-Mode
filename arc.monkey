@@ -1,0 +1,10 @@
+true;
+false;
+();
+();
+4269 ;
+"hello";
+let arc = "monke";
+return "hello";
+arc;
+let a = fn(c) { a; };
