@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 from syntax import Exp, Stmt
 import syntax 
 
@@ -58,38 +58,38 @@ class Interp:
     
     def assert_num(v: Value) -> Union[int, float]:
         match v:
-            case Num(value):
+            case Num(value=value):
                 return value 
             case _: 
                 raise TypeError("Num")
 
     def assert_bool(v: Value) -> bool:
         match v: 
-            case Bool(value):
+            case Bool(value=value):
                 return value 
             case _:
                 raise TypeError("Bool")
 
-    def arith_op(self, lhs: Value, rhs: Value, f: function) -> Value:
+    def arith_op(self, lhs: Value, rhs: Value, f: Callable) -> Value:
         lhs = self.assert_num(lhs)
         rhs = self.assert_num(rhs)
         return f(lhs, rhs)
     
     def exec(self, s: Stmt) -> None:
         match s:
-            case syntax.NakedExp(exp):
+            case syntax.NakedExp(exp=exp):
                 self.eval(exp);
-            case syntax.Let(name, init):
+            case syntax.Let(name=name, init=init):
                 init = self.eval(init)
                 self.env[name] = init
-            case syntax.Assign(target, value):
+            case syntax.Assign(target=target, value=value):
                 match target:
                     # TODO: more expr???
-                    case syntax.Variable(name):
+                    case syntax.Variable(name=name):
                         value = self.eval(value)
                         self.env[name] = value 
             # big brain moment
-            case syntax.Return(tb_returned):
+            case syntax.Return(tb_returned=tb_returned):
                 tb_returned = self.eval(tb_returned)
                 raise Return(tb_returned)
 
@@ -101,7 +101,7 @@ class Interp:
                 for s in stuff:
                     self.exec(s)
                 match last:
-                    case syntax.NakedExp(exp):
+                    case syntax.NakedExp(exp=exp):
                         return self.eval(exp)
                     case _:
                         return Unit() 
@@ -111,22 +111,22 @@ class Interp:
             # literals
             case syntax.Unit():
                 return Unit()
-            case syntax.Bool(value):
+            case syntax.Bool(value=value):
                 return Bool(value)
-            case syntax.Num(value):
+            case syntax.Num(value=value):
                 return Num(value)
-            case syntax.String(value):
+            case syntax.String(value=value):
                 return String(value)
             
             # thicc literals
-            case syntax.Array(elements):
+            case syntax.Array(elements=elements):
                 return Array([self.eval(e) for e in elements])
-            case syntax.Hashmap(elements):
+            case syntax.Hashmap(elements=elements):
                 return Hashmap({self.eval(e1): self.eval(e2) for e1, e2 in elements.items()})
             
-            case syntax.Variable(name):
+            case syntax.Variable(name=name):
                 return self.env[name]
-            case syntax.BinOp(lhs, rhs, op):
+            case syntax.BinOp(lhs=lhs, rhs=rhs, op=op):
 
                 lhs = self.eval(lhs)
                 rhs = self.eval(rhs)
@@ -148,7 +148,7 @@ class Interp:
                     case Leq():
                         return self.arith_op(lhs, rhs, lambda x,y: Bool(x <= y))
                     #.. 
-            case syntax.Cond(condition, perchance, perchance_not):
+            case syntax.Cond(condition=condition, perchance=perchance, perchance_not=perchance_not):
                 condition = self.eval(condition)
                 condition = self.assert_bool(condition)
 
@@ -160,23 +160,23 @@ class Interp:
                             return Unit()
                         case wildcard:
                             return self.eval(wildcard)
-            case syntax.Block(stmts):
+            case syntax.Block(stmts=stmts):
                 return self.block(stmts)
             
-            case syntax.Field(tb_fielded, field):
+            case syntax.Field(tb_fielded=tb_fielded, field=field):
                 tb_fielded = self.eval(tb_fielded)
                 match tb_fielded:
-                    case Hashmap(elements):
+                    case Hashmap(elements=elements):
                         return elements[String(field)]
                     case _:
                         raise TypeError("HashMap")
-            case syntax.Subscript(tb_indexed, index):
+            case syntax.Subscript(tb_indexed=tb_indexed, index=index):
                 tb_indexed = self.eval(tb_indexed)
                 match tb_indexed:
-                    case Hashmap(elements):
+                    case Hashmap(elements=elements):
                         index = self.eval(index)
                         return elements[index]
-                    case Array(elements):
+                    case Array(elements=elements):
                         index = self.eval(index)
                         match index:
                             case Num(value=int(ix)):
@@ -185,12 +185,12 @@ class Interp:
                                 raise TypeError("Int")
                     case _:
                         raise TypeError("Subscriptable (Array / HashMap)")
-            case syntax.Func(params, body):
+            case syntax.Func(params=params,body=body):
                 return Closure(params, body)
-            case syntax.Call(func, args):
+            case syntax.Call(func=func, args=args):
                 func = self.eval(func)
                 match func:
-                    case Closure(params, body):
+                    case Closure(params=params, body=body):
                         if len(args) != len(params): raise IncorrectArity(len(params), len(args))
                         env = {name: self.eval(arg) for name, arg in zip(params, args)}
                         try:
