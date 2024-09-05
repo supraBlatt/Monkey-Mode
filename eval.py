@@ -56,14 +56,14 @@ class Interp:
     def __init__(self, e: dict[str, Value]):
         self.env = e
     
-    def assert_num(v: Value) -> Union[int, float]:
+    def assert_num(self, v: Value) -> Union[int, float]:
         match v:
             case Num(value=value):
                 return value 
             case _: 
                 raise TypeError("Num")
 
-    def assert_bool(v: Value) -> bool:
+    def assert_bool(self, v: Value) -> bool:
         match v: 
             case Bool(value=value):
                 return value 

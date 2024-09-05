@@ -18,3 +18,4 @@ pp["hello"];
 pp.temp;
 pp.temp["hi"](a);
 if(a == b) { a = a + 4;} else {b - 23; };
+return "a";
