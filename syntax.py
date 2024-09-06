@@ -130,7 +130,7 @@ class Func(Exp):
         self.body = b 
 
     def __str__(self):
-        return f"fn({','.join(self.params)}) {{{';'.join(self.body)}}}"
+        return f"fn({','.join(self.params)}) {{{';'.join([str(s) for s in self.body])}}}"
 
 class Cond(Exp):
     condition: Exp 
@@ -153,6 +153,17 @@ class Cond(Exp):
                 tmp = ""
 
         return f"if ({self.condition}) {block_string(self.perchance)}{tmp}"
+
+class While(Exp):
+    condition: Exp
+    body: list[Stmt]
+
+    def __init__(self, condition:Exp, body: list[Stmt]):
+        self.condition = condition
+        self.body = body 
+
+    def __str__(self):
+        return f"while ({self.condition}) {block_string(self.body)}"
 
 
 def block_string(s: list[Stmt]) -> str:
@@ -211,4 +222,6 @@ class Div(Operator):
 class Eq(Operator):
     pass
 class Leq(Operator):
+    pass
+class Mod(Operator):
     pass

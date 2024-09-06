@@ -6,22 +6,23 @@ parser = Lark(r"""
     
     stmt : expr ";"                                     -> naked
          | "let" ID "=" expr ";"                        -> let
-         |  ID "=" expr ";"                             -> assign
+         |  expr "=" expr ";"                           -> assign
          | "return" expr ";"                            -> ret
 
     ?expr : prec3
     
     ?prec3 : prec4
-           | prec3 "<=" atom                            -> leq 
-           | prec3 "==" atom                            -> eq
+           | prec3 "<=" prec4                            -> leq 
+           | prec3 "==" prec4                            -> eq
               
     ?prec4 : prec5
-           | prec4 "+" atom                             -> plus
-           | prec4 "-" atom                             -> minus
+           | prec4 "+" prec5                             -> plus
+           | prec4 "-" prec5                             -> minus
               
     ?prec5 : prec10 
-           | prec5 "*" atom                             -> mult
-           | prec5 "/" atom                             -> div
+           | prec5 "*" prec10                             -> mult
+           | prec5 "/" prec10                             -> div
+           | prec5 "%" prec10                             -> mod
               
     ?prec10 : atom
             | prec10 "(" expr_list ")"                  -> like
@@ -37,7 +38,9 @@ parser = Lark(r"""
           | "fn" "(" [ID ("," ID)*]  ")" "{" block "}"  -> func
           | "[" expr_list "]"                           -> array
           | "{" [pair ("," pair)*] "}"                  -> hash
-          | perchance                                   -> perhaps 
+          | perchance                                   -> perhaps
+          | "while" "(" expr ")" "{" block "}"          -> solongas
+          | "(" expr ")"                                
 
     ?perchance: "if" "(" expr ")" "{" block "}" ["else" perchance_not]
     ?perchance_not: perchance | "{" block "}"
@@ -45,11 +48,13 @@ parser = Lark(r"""
     ?pair: (expr ":" expr)
     expr_list: [expr ("," expr)*]
     ID : /[a-zA-Z][a-zA-Z0-9_]*/
-
+    COMMENT: "//" /[^\n]/*
+              
     %import common.ESCAPED_STRING
     %import common.SIGNED_NUMBER
     %import common.WS
     %ignore WS
+    %ignore COMMENT
 
     """, start='block', debug=True, strict=True, parser="lalr")
 
@@ -124,6 +129,10 @@ class Parser(Transformer):
         (items, ) = items 
         return items
     
+    def solongas(self, items):
+        cond, body = items
+        return While(cond, body)
+
     # call
     def like(self, items):
         func, args = items 
@@ -144,3 +153,4 @@ class Parser(Transformer):
     minus = binOP(Minus())
     leq = binOP(Leq())
     eq = binOP(Eq())
+    mod = binOP(Mod())
