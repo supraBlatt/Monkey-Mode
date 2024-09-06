@@ -2,20 +2,35 @@ from typing import Callable, Optional, Union
 from syntax import Exp, Stmt
 import syntax 
 
-from syntax import Plus, Minus, Mult, Div, Eq, Leq
+from syntax import Plus, Minus, Mult, Div, Eq, Leq, Mod
 
 class Value:
-
     pass
 
 class Unit(Value):
-    pass
+    def __str__(self):
+        return "()"
+
+    def __hash__(self):
+        return hash(None)
+    
+    def __eq__(self, other):
+        return isinstance(other, Unit)
 
 class Num(Value):
     value: Union[int, float]
     
     def __init__(self, v: Union[int, float]):
         self.value = v
+    
+    def __str__(self):
+        return str(self.value)
+    
+    def __hash__(self):
+        return hash(self.value)
+    
+    def __eq__(self, other):
+        return isinstance(other, Num) and self.value == other.value
 
 class String(Value):
     value: str
@@ -23,38 +38,77 @@ class String(Value):
     def __init__(self, s: str):
         self.value = s
 
+    def __str__(self):
+        return self.value
+    
+    def __hash__(self):
+        return hash(self.value)
+    
+    def __eq__(self, other):
+        return isinstance(other, String) and self.value == other.value
+
 class Bool(Value):
     value: bool
     
     def __init__(self, b: bool):
         self.value = b
 
+    def __str__(self):
+        return str(self.value)
+    
+    def __hash__(self):
+        return hash(self.value)
+
+    def __eq__(self, other):    
+        return isinstance(other, Bool) and self.value == other.value
+
 class Hashmap(Value):
     elements: dict[Value, Value]
 
     def __init__(self, e: dict[Value, Value]):
         self.elements = e 
+    
+    def __str__(self):
+        return f"{{{', '.join(f'{a}: {b}' for a, b in self.elements.items())}}}"
 
 class Array(Value):
     elements: list[Value]
 
     def __init__(self, e: list[Value]):
         self.elements = e
+        
+    def __str__(self):
+        return f"[{', '.join([str(e) for e in self.elements])}]"
 
 # THE CROWN JEWEL
 class Closure(Value):
     parameters: list[str]
     body: list[Stmt]
+    env: list[dict[str, Value]]
 
-    def __init__(self, p: list[str], b: list[Stmt]):
+    def __init__(self, p: list[str], b: list[Stmt], env: list[dict[str, Value]]):
         self.parameters = p 
         self.body = b 
+        self.env = env
+
+    def __str__(self):
+        return "<<Closure>>"
+
+class PrimOp(Value):
+    func : Callable[[list[Value]], Value]
+
+    def __init__(self, func):
+        self.func = func 
+    
+    def __str__(self):
+        return "<<PrimOp>>"
+
 
 class Interp:
-    env: dict[str, Value]
+    env_stack : list[dict[str, Value]]
 
-    def __init__(self, e: dict[str, Value]):
-        self.env = e
+    def __init__(self, env_stack : list[dict[str, Value]]):
+        self.env_stack = env_stack
     
     def assert_num(self, v: Value) -> Union[int, float]:
         match v:
@@ -80,33 +134,52 @@ class Interp:
             case syntax.NakedExp(exp=exp):
                 self.eval(exp);
             case syntax.Let(name=name, init=init):
-                init = self.eval(init)
-                self.env[name] = init
+                match init:
+                    #case syntax.Func():
+                        #self.env_stack[-1][name] = init
+                        #init = self.eval(init)
+                    case _:
+                        init = self.eval(init)
+                        self.env_stack[-1][name] = init
             case syntax.Assign(target=target, value=value):
                 match target:
                     # TODO: more expr???
                     case syntax.Variable(name=name):
+                        idx = self.lookup(name)
                         value = self.eval(value)
-                        self.env[name] = value 
+                        self.env_stack[idx][name] = value 
+                    case _:
+                        raise ValueError("Invalid lvalue")
             # big brain moment
             case syntax.Return(tb_returned=tb_returned):
                 tb_returned = self.eval(tb_returned)
                 raise Return(tb_returned)
+            case _:
+                raise ValueError("Unknown Statement")
 
     def block(self, b: list[Stmt]) -> Value:
         match b: 
             case []:
                 return Unit()
             case [*stuff, last]:
+                ret = None 
+                self.env_stack.append({})
+    
                 for s in stuff:
                     self.exec(s)
+
                 match last:
                     case syntax.NakedExp(exp=exp):
-                        return self.eval(exp)
+                        ret = self.eval(exp)
                     case _:
-                        return Unit() 
+                        self.exec(last)
+                        ret = Unit() 
+    
+                self.env_stack.pop()
+                return ret
         
     def eval(self, e: Exp) -> Value:
+        #print(e, type(e))
         match e: 
             # literals
             case syntax.Unit():
@@ -125,7 +198,8 @@ class Interp:
                 return Hashmap({self.eval(e1): self.eval(e2) for e1, e2 in elements.items()})
             
             case syntax.Variable(name=name):
-                return self.env[name]
+                idx = self.lookup(name)
+                return self.env_stack[idx][name]
             case syntax.BinOp(lhs=lhs, rhs=rhs, op=op):
 
                 lhs = self.eval(lhs)
@@ -147,6 +221,8 @@ class Interp:
                         return self.arith_op(lhs, rhs, lambda x,y: Bool(x == y))
                     case Leq():
                         return self.arith_op(lhs, rhs, lambda x,y: Bool(x <= y))
+                    case Mod():
+                        return self.arith_op(lhs, rhs, lambda x,y:  Num(x % y))
                     #.. 
             case syntax.Cond(condition=condition, perchance=perchance, perchance_not=perchance_not):
                 condition = self.eval(condition)
@@ -158,8 +234,10 @@ class Interp:
                     match perchance_not:
                         case None:
                             return Unit()
-                        case wildcard:
-                            return self.eval(wildcard)
+                        case syntax.Cond():
+                            return self.eval(perchance_not)
+                        case [*stmts]:
+                            return self.block(stmts)
             case syntax.Block(stmts=stmts):
                 return self.block(stmts)
             
@@ -186,22 +264,41 @@ class Interp:
                     case _:
                         raise TypeError("Subscriptable (Array / HashMap)")
             case syntax.Func(params=params,body=body):
-                return Closure(params, body)
-            case syntax.Call(func=func, args=args):
+                return Closure(params, body, [dict(env) for env in self.env_stack])
+            case syntax.Call(func=func, arguments=args):
                 func = self.eval(func)
                 match func:
-                    case Closure(params=params, body=body):
+                    case Closure(parameters=params, body=body, env=e):
                         if len(args) != len(params): raise IncorrectArity(len(params), len(args))
-                        env = {name: self.eval(arg) for name, arg in zip(params, args)}
+                        local = e + [{name: self.eval(arg) for name, arg in zip(params, args)}]
                         try:
-                            return Interp(env).block(body)
+                            return Interp(local).block(body)
                         except Return as ret:
-                            return ret.value
+                            return ret.value                 
+                    case PrimOp(func=func):
+                        args = [self.eval(arg) for arg in args] 
+                        return func(args)
 
                     case _:
                         raise TypeError("Closure")
+            
+            case syntax.While(condition=condition, body=body):
+                #condition = self.eval(condition)
+                #condition = self.assert_bool(condition)
 
-                  
+                while self.assert_bool(self.eval(condition)):
+                    self.block(body)
+                return Unit()
+            case _:
+                raise ValueError("Skill Issue")
+
+    def lookup(self, name: str):
+        for idx, env in list(enumerate(self.env_stack))[::-1]:
+            if name in env:
+                return idx
+            
+        raise UnboundVariable(name)
+    
 class RuntimeError(Exception):
     pass
 
@@ -222,10 +319,34 @@ class IncorrectArity(RuntimeError):
         self.expected = e 
         self.actual = a
 
+class UnboundVariable(RuntimeError):
+    name: str 
+
+    def __init__(self, e: str):
+        self.name = e 
+
 class Return(Exception):
     value: Value 
 
     def __init__(self, v: Value):
         self.value = v
 
-        
+def make_global_env() -> dict[str, Value]:
+    def puts(params: list[Value]) -> Value:
+        print(*[str(val) for val in params], sep='\n')
+
+    def length(params: list[Value]) -> Value:
+        match params:
+            case [e]:
+                match e:
+                    case String(value=v) | Hashmap(elements=v) | Array(elements=v):
+                        return len(v) 
+                    case _:
+                        raise TypeError("String/Hashmap/Array")
+            case _:
+                raise IncorrectArity(1, len(params))
+    
+    return {
+        "puts": PrimOp(puts),
+        "len": PrimOp(length)
+    }

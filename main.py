@@ -1,6 +1,7 @@
 from sys import argv 
 from parser import parser, Parser
 from eval import Interp
+from eval import make_global_env
 
 
 def main():
@@ -13,7 +14,7 @@ def main():
     parsed = Parser().transform(parsed)
     #print(*parsed, sep="\n")
 
-    interp = Interp({})
+    interp = Interp([make_global_env()])
     interp.block(parsed)
 
 if __name__ == '__main__':
