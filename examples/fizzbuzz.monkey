@@ -21,27 +21,5 @@ let while_fizz = fn(x) {
     };
 };
 
-//while_fizz(5);
-//if (true) { let x = 10; let y = 20; };
-//puts(x);
-
-rec_fizz(20);
-//i += 2;
-//i++ - 2;
-
-
-let counter = fn() {
-  let x = 0;
-  fn() {
-    let y = x;
-    x = x + 1;
-    y;
-  };
-};
-
-let x = counter();
-puts(x());
-puts(x());
-puts(x());
-puts(x());
-puts(x());
+while_fizz(16);
+//rec_fizz(20);
