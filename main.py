@@ -1,7 +1,8 @@
-from sys import argv 
+from sys import argv
+import eval, static
 from parser import parser, Parser
-from eval import Interp
-from eval import make_global_env
+from eval import Interp, make_global_env
+from static import Anal
 
 
 def main():
@@ -14,7 +15,8 @@ def main():
     parsed = Parser().transform(parsed)
     #print(*parsed, sep="\n")
 
-    interp = Interp([make_global_env()])
+    analyser = Anal([static.make_global_env()])
+    interp = Interp([eval.make_global_env()])
     interp.block(parsed)
 
 if __name__ == '__main__':
