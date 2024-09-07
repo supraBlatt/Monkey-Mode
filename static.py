@@ -1,25 +1,29 @@
 from syntax import Exp, Stmt
-import syntax 
+import syntax
+
 
 class PreRuntimeError(Exception):
     pass
 
+
 class UnboundVariable(PreRuntimeError):
-    name: str 
+    name: str
 
     def __init__(self, e: str):
-        self.name = e 
+        self.name = e
+
 
 class RValueAssignment(PreRuntimeError):
     pass
 
-class Anal():
+
+class Anal:
     env_stack: list[set[str]]
 
     def __init__(self, env_stack: list[set[str]]):
         self.env_stack = env_stack
 
-    def stmt(self, s:Stmt) -> None:
+    def stmt(self, s: Stmt) -> None:
         match s:
             case syntax.NakedExp(exp=exp):
                 self.analyse(exp)
@@ -46,7 +50,7 @@ class Anal():
     def block(self, b: list[Stmt]) -> None:
         match b:
             case []:
-                return 
+                return
             case [stuff]:
                 self.env_stack.append(set())
                 for s in stuff:
@@ -58,13 +62,13 @@ class Anal():
             case syntax.Unit():
                 return
             case syntax.Bool(value=value):
-                return 
+                return
             case syntax.Num(value=value):
-                return 
+                return
             case syntax.String(value=value):
-                return 
-            
-            # compounds 
+                return
+
+            # compounds
             case syntax.Array(elements=elements):
                 for e in elements:
                     self.analyse(e)
@@ -72,7 +76,7 @@ class Anal():
                 for k, v in elements.items():
                     self.eval(k)
                     self.eval(v)
-            
+
             case syntax.Variable(name=name):
                 self.lookup(name)
             case syntax.BinOp(lhs=lhs, rhs=rhs, op=op):
@@ -80,7 +84,9 @@ class Anal():
                 lhs = self.analyse(lhs)
                 rhs = self.analyse(rhs)
 
-            case syntax.Cond(condition=condition, perchance=perchance, perchance_not=perchance_not):
+            case syntax.Cond(
+                condition=condition, perchance=perchance, perchance_not=perchance_not
+            ):
                 self.analyse(condition)
                 self.block(perchance)
                 match perchance_not:
@@ -93,15 +99,15 @@ class Anal():
 
             case syntax.Block(stmts=stmts):
                 self.block(stmts)
-            
+
             case syntax.Field(tb_fielded=tb_fielded, field=field):
                 self.analyse(tb_fielded)
                 self.analyse(field)
             case syntax.Subscript(tb_indexed=tb_indexed, index=index):
                 self.analyse(tb_indexed)
                 self.analyse(index)
-            
-            case syntax.Func(params=params,body=body):
+
+            case syntax.Func(params=params, body=body):
                 self.env_stack.append(params)
                 self.block(body)
                 self.env_stack.pop()
@@ -118,8 +124,9 @@ class Anal():
         for env in self.env_stack[::-1]:
             if name in env:
                 return
-            
+
         raise UnboundVariable(name)
-    
+
+
 def make_global_env() -> set[str]:
     return ["puts", "len"]

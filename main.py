@@ -7,18 +7,17 @@ from static import Anal
 
 def main():
     filename = argv[1]
-    src = open(filename, 'r').read()
+    src = open(filename, "r").read()
 
-    #text = '{"key": ["item0", "item1", 3.14]}'
     parsed = parser.parse(src)
-    #print(parsed.pretty())
+    # print(parsed.pretty())
     parsed = Parser().transform(parsed)
-    #print(*parsed, sep="\n")
+    # print(*parsed, sep="\n")
 
     analyser = Anal([static.make_global_env()])
     interp = Interp([eval.make_global_env()])
     interp.block(parsed)
 
-if __name__ == '__main__':
-    main()
 
+if __name__ == "__main__":
+    main()
