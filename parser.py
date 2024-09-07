@@ -147,6 +147,8 @@ class Parser(Transformer):
         tb, index = items
         return Subscript(tb, index)
     
+    def ID(self, items):
+        return str(items)
     mult = binOP(Mult())
     plus = binOP(Plus())
     div = binOP(Div())

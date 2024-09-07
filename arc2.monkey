@@ -25,7 +25,7 @@ let while_fizz = fn(x) {
 //if (true) { let x = 10; let y = 20; };
 //puts(x);
 
-//rec_fizz(20);
+rec_fizz(20);
 //i += 2;
 //i++ - 2;
 

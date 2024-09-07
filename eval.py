@@ -115,6 +115,7 @@ class Interp:
             case Num(value=value):
                 return value 
             case _: 
+                print(v, type(v))
                 raise TypeError("Num")
 
     def assert_bool(self, v: Value) -> bool:
@@ -135,12 +136,14 @@ class Interp:
                 self.eval(exp);
             case syntax.Let(name=name, init=init):
                 match init:
-                    #case syntax.Func():
-                        #self.env_stack[-1][name] = init
-                        #init = self.eval(init)
+                    case syntax.Func(params=params, body=body):
+                        init = self.eval(init)
+                        self.env_stack[-1][name] = init
+                        init.env[-1][name] = init
                     case _:
                         init = self.eval(init)
                         self.env_stack[-1][name] = init
+
             case syntax.Assign(target=target, value=value):
                 match target:
                     # TODO: more expr???
