@@ -16,12 +16,16 @@ class UnboundVariable(PreRuntimeError):
 class RValueAssignment(PreRuntimeError):
     pass
 
+class InvalidReturn(PreRuntimeError):
+    pass 
 
 class Anal:
     env_stack: list[set[str]]
+    func_nesting_level : int
 
     def __init__(self, env_stack: list[set[str]]):
         self.env_stack = env_stack
+        self.func_nesting_level = 0 
 
     def stmt(self, s: Stmt) -> None:
         match s:
@@ -44,6 +48,8 @@ class Anal:
                     case _:
                         raise RValueAssignment()
             case syntax.Return(tb_returned=tb_returned):
+                if(self.func_nesting_level == 0):
+                    raise InvalidReturn()
                 self.analyse(tb_returned)
             case _:
                 raise ValueError("Uknown Statement")
@@ -110,7 +116,9 @@ class Anal:
 
             case syntax.Func(params=params, body=body):
                 self.env_stack.append(params)
+                self.func_nesting_level += 1
                 self.block(body)
+                self.func_nesting_level -= 1
                 self.env_stack.pop()
 
             case syntax.Call(func=func, arguments=args):
