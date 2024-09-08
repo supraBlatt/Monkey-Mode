@@ -8,8 +8,8 @@ let counter = fn() {
 };
 
 let x = counter();
-//puts(x());
-//puts(x());
-//puts(x());
-//puts(x());
-//puts(x());
+puts(x());
+puts(x());
+puts(x());
+puts(x());
+puts(x());

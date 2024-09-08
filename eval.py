@@ -280,7 +280,7 @@ class Interp:
                     case _:
                         raise TypeError("Subscriptable (Array / HashMap)")
             case syntax.Func(params=params, body=body):
-                return Closure(params, body, [dict(env) for env in self.env_stack])
+                return Closure(params, body, list(self.env_stack))
             case syntax.Call(func=func, arguments=args):
                 func = self.eval(func)
                 match func:

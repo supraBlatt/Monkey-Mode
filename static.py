@@ -29,12 +29,13 @@ class Anal:
                 self.analyse(exp)
             case syntax.Let(name=name, init=init):
                 match init:
-                    case syntax.Func(params=params, body=body):
+                    case syntax.Func():
                         self.env_stack[-1].add(name)
                         self.analyse(init)
                     case _:
                         self.analyse(init)
                         self.env_stack[-1].add(name)
+                    
             case syntax.Assign(target=target, value=value):
                 match target:
                     case syntax.Variable():
@@ -51,7 +52,7 @@ class Anal:
         match b:
             case []:
                 return
-            case [stuff]:
+            case [*stuff]:
                 self.env_stack.append(set())
                 for s in stuff:
                     self.stmt(s)
@@ -114,6 +115,8 @@ class Anal:
 
             case syntax.Call(func=func, arguments=args):
                 self.analyse(func)
+                for arg in args:
+                    self.analyse(arg)
             case syntax.While(condition=condition, body=body):
                 self.analyse(condition)
                 self.block(body)
