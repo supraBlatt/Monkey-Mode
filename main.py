@@ -5,18 +5,23 @@ import eval, static
 from eval import Interp
 from static import Anal
 
+from lower import IR_Transformer
 
 def main():
     filename = argv[1]
     src = open(filename, "r").read()
 
-    parsed = parser.parse(src)
+    ast = parser.parse(src)
     # print(parsed.pretty())
-    parsed = Parser().transform(parsed)
+    ast = Parser().transform(ast)
     # print(*parsed, sep="\n")
 
     analyser = Anal([static.make_global_env()])
-    analyser.block(parsed)
+    analyser.block(ast)
+    
+    ir = IR_Transformer()
+    ir.lower_block(ast)
+    print(*[str(s) for s in ir.stmts], sep='\n')
 
     #interp = Interp([eval.make_global_env()])
     #interp.block(parsed)
