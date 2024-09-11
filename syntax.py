@@ -38,7 +38,7 @@ class String(Exp):
         self.value = s
 
     def __str__(self):
-        return self.value
+        return f'"{self.value}"'
 
 
 class Bool(Exp):
