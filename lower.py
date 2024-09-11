@@ -12,14 +12,26 @@ class IR_Transformer:
     def lower_statement(self, s: Stmt) -> None:
         match s:
             case NakedExp(exp=exp):
-                self.stmts.append(self.lower(exp))
+                exp = self.lower(exp)
             case Let(name=name, init=init):
                 stmt = Let(name, self.lower(init))
                 self.stmts.append(stmt)
             case Assign(target=target, value=value):
                 match target:
+                    case Subscript(tb_indexed=tb_indexed, index=index):
+                        tb_indexed = self.lower(tb_indexed)
+                        index = self.lower(index)
+                        value = self.lower(value)
+                        stmt = Assign(Subscript(tb_indexed, index), value)
+                        self.stmts.append(stmt)
+                    case Field(tb_fielded=tb_fielded, field=field):
+                        tb_fielded = self.lower(tb_fielded)
+                        value = self.lower(value)
+                        stmt = Assign(Subscript(tb_fielded, String(field)), value)
+                        self.stmts.append(stmt)
                     case Variable(name=name):
-                        stmt = Assign(target, self.lower(value))
+                        value = self.lower(value)
+                        stmt = Assign(target, value)
                         self.stmts.append(stmt)
                     case _:
                         raise ValueError("Invalid lvalue")
@@ -73,9 +85,53 @@ class IR_Transformer:
                 name = self.make_variable()
                 self.stmts.append(Let(name, Call(func, args)))
                 return Variable(name) 
-
+            case Subscript(tb_indexed=tb_indexed, index=index):
+                tb_indexed = self.lower(tb_indexed)
+                index = self.lower(index)
+                exp = Subscript(tb_indexed, index)
+                name = self.make_variable()
+                self.stmts.append(Let(name, exp))
+                return Variable(name)
+            case Field(tb_fielded=tb_fielded, field=field):
+                tb_fielded = self.lower(tb_fielded)
+                field = String(field)
+                exp = Subscript(tb_fielded, field)
+                name = self.make_variable()
+                self.stmts.append(Let(name, exp))
+                return Variable(name)
+            case Array(elements=elements):
+                elements = [self.lower(e) for e in elements]
+                exp = Array(elements)
+                name = self.make_variable()
+                self.stmts.append(Let(name, exp))
+                return Variable(name)
+            case Hashmap(elements=elements):
+                elements = {self.lower(k) : self.lower(v) for k,v in elements.items()}
+                name = self.make_variable()
+                exp = Hashmap(elements)
+                self.stmts.append(Let(name, exp))
+                return Variable(name)
+            case Cond(condition=condition, perchance=perchance, perchance_not=perchance_not):
+                condition = self.lower(condition)
+                perchance = self.lower_block(perchance)
+                match perchance_not:
+                    case None:
+                        pass 
+                    case Cond():
+                        perchance_not = self.lower(perchance_not)
+                    case [*stmts]:
+                        perchance_not = self.lower_block(stmts)
+                exp = Cond(condition, perchance, perchance_not)
+                name = self.make_variable()
+                self.stmts.append(Let(name, exp))
+                return Variable(name)
+                
+                        
+                        
+                    
             case _:
-                raise ValueError("Skibidi")
+                print(x, type(x))
+                raise ValueError("Get Ratioed")
 
     def make_variable(self) -> str:
         name = f"${self.timestamp}"
