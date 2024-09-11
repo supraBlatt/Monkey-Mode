@@ -97,6 +97,7 @@ class Parser(Transformer):
 
     def string(self, s):
         (s,) = s
+        s = s[1:-1]
         return String(s)
 
     def naked(self, e):
