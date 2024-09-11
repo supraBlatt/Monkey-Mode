@@ -42,11 +42,16 @@ class Anal:
                     
             case syntax.Assign(target=target, value=value):
                 match target:
+                    case syntax.Field(tb_fielded=tb):
+                        self.analyse(tb)
+                    case syntax.Subscript(tb_indexed=tb, index=index):
+                        self.analyse(tb)
+                        self.analyse(index)
                     case syntax.Variable():
                         self.analyse(target)
-                        self.analyse(value)
                     case _:
                         raise RValueAssignment()
+                self.analyse(value)
             case syntax.Return(tb_returned=tb_returned):
                 if(self.func_nesting_level == 0):
                     raise InvalidReturn()
@@ -81,8 +86,8 @@ class Anal:
                     self.analyse(e)
             case syntax.Hashmap(elements=elements):
                 for k, v in elements.items():
-                    self.eval(k)
-                    self.eval(v)
+                    self.analyse(k)
+                    self.analyse(v)
 
             case syntax.Variable(name=name):
                 self.lookup(name)
@@ -109,7 +114,6 @@ class Anal:
 
             case syntax.Field(tb_fielded=tb_fielded, field=field):
                 self.analyse(tb_fielded)
-                self.analyse(field)
             case syntax.Subscript(tb_indexed=tb_indexed, index=index):
                 self.analyse(tb_indexed)
                 self.analyse(index)
