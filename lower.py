@@ -113,7 +113,16 @@ class IR_Transformer:
                 return Variable(name)
             case Cond(condition=condition, perchance=perchance, perchance_not=perchance_not):
                 condition = self.lower(condition)
-                perchance = self.lower_block(perchance)
+
+                # handle perchance like Func 
+                ir = IR_Transformer()
+                atom = ir.lower_block(perchance)
+                match atom:
+                    case Unit():
+                        pass 
+                    case _:
+                        
+
                 match perchance_not:
                     case None:
                         pass 
@@ -125,10 +134,13 @@ class IR_Transformer:
                 name = self.make_variable()
                 self.stmts.append(Let(name, exp))
                 return Variable(name)
-                
-                        
-                        
-                    
+            case While(condition=condition, body=body):
+                condition = self.lower(condition)
+                body = self.lower_block(body)
+                exp = While(condition, body)
+                name = self.make_variable()
+                self.stmts.append(Let(name, exp))
+                return Variable(name)
             case _:
                 print(x, type(x))
                 raise ValueError("Get Ratioed")

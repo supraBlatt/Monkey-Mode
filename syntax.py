@@ -186,6 +186,7 @@ class While(Exp):
 
 
 def block_string(s: list[Stmt]) -> str:
+    print("list: ", s, type(s))
     tmp = ";\n".join([str(x) for x in s])
     return f"{{\n{tmp}\n}}"
 
