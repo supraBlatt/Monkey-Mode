@@ -113,15 +113,10 @@ class IR_Transformer:
                 return Variable(name)
             case Cond(condition=condition, perchance=perchance, perchance_not=perchance_not):
                 condition = self.lower(condition)
-
-                # handle perchance like Func 
-                ir = IR_Transformer()
-                atom = ir.lower_block(perchance)
-                match atom:
-                    case Unit():
-                        pass 
-                    case _:
-                        
+                
+                perchance_ir = IR_Transformer()
+                atom = perchance_ir.lower_block(perchance)
+                perchance = perchance_ir.stmts
 
                 match perchance_not:
                     case None:
@@ -129,11 +124,15 @@ class IR_Transformer:
                     case Cond():
                         perchance_not = self.lower(perchance_not)
                     case [*stmts]:
-                        perchance_not = self.lower_block(stmts)
+                        not_ir = IR_Transformer()
+                        atom = not_ir.lower_block(stmts)  
+                        perchance_not = not_ir.stmts
+
                 exp = Cond(condition, perchance, perchance_not)
                 name = self.make_variable()
                 self.stmts.append(Let(name, exp))
                 return Variable(name)
+
             case While(condition=condition, body=body):
                 condition = self.lower(condition)
                 body = self.lower_block(body)

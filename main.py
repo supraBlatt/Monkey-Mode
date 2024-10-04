@@ -12,16 +12,16 @@ def main():
     src = open(filename, "r").read()
 
     ast = parser.parse(src)
-    # print(parsed.pretty())
+    print(ast.pretty())
     ast = Parser().transform(ast)
-    # print(*parsed, sep="\n")
+    print(*ast, sep="\n")
 
-    analyser = Anal([static.make_global_env()])
-    analyser.block(ast)
+    #analyser = Anal([static.make_global_env()])
+    #analyser.block(ast)
     
-    ir = IR_Transformer()
-    ir.lower_block(ast)
-    print(*[str(s) for s in ir.stmts], sep='\n')
+    #ir = IR_Transformer()
+    #ir.lower_block(ast)
+    #print(*[str(s) for s in ir.stmts], sep='\n')
 
     #interp = Interp([eval.make_global_env()])
     #interp.block(parsed)
