@@ -19,6 +19,9 @@ class Block(Exp):
 
     def __init__(self, s: list[Stmt]):
         self.stmts = s
+    
+    def __str__(self):
+        return f"{{{' '.join([str(e) for e in self.stmts])}}}"
 
 
 class Num(Exp):
@@ -146,7 +149,7 @@ class Func(Exp):
 
     def __str__(self):
         return (
-            f"fn({','.join(self.params)}) {{{';'.join([str(s) for s in self.body])}}}"
+            f"fn({','.join(self.params)}) {{{''.join([str(s) for s in self.body])}}}"
         )
 
 
@@ -186,9 +189,9 @@ class While(Exp):
 
 
 def block_string(s: list[Stmt]) -> str:
-    print("list: ", s, type(s))
-    tmp = ";\n".join([str(x) for x in s])
-    return f"{{\n{tmp}\n}}"
+    #print("list: ", s, type(s))
+    tmp = "\n\t".join([str(x) for x in s])
+    return f"{{\n\t{tmp}\n}}"
 
 
 class NakedExp(Stmt):
@@ -236,7 +239,8 @@ class Assign(Stmt):
 
 
 class Plus(Operator):
-    pass
+    def __str__(self):
+        return "+"
 
 
 class Minus(Operator):
@@ -252,11 +256,13 @@ class Div(Operator):
 
 
 class Eq(Operator):
-    pass
+    def __str__(self):
+        return "=="
 
 
 class Leq(Operator):
-    pass
+    def __str__(self):
+        return "<="
 
 
 class Mod(Operator):

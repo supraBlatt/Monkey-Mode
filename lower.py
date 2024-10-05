@@ -1,13 +1,29 @@
 from syntax import *
 
+class Counter:
+    timestamp : int
+    
+    def __init__(self):
+        self.timestamp = 0 
+
+    # non atomic, a mess 
+    def inc(self) -> int:
+        tmp = self.timestamp
+        self.timestamp += 1
+        return tmp 
+        
 
 class IR_Transformer:
     stmts: list[Stmt]
     timestamp: int
 
-    def __init__(self):
+    def __init__(self, counter : Optional[Counter] = None):
         self.stmts = []
-        self.timestamp = 0
+        match counter:
+            case None:
+                self.counter = Counter() 
+            case Counter():
+                self.counter = counter 
 
     def lower_statement(self, s: Stmt) -> None:
         match s:
@@ -112,21 +128,24 @@ class IR_Transformer:
                 self.stmts.append(Let(name, exp))
                 return Variable(name)
             case Cond(condition=condition, perchance=perchance, perchance_not=perchance_not):
-                condition = self.lower(condition)
+                cond_ir = IR_Transformer(self.counter)
+                atom = cond_ir.lower(condition)
+                stmts = cond_ir.stmts + [NakedExp(atom)]
+                condition = Block(stmts)          
                 
-                perchance_ir = IR_Transformer()
+                perchance_ir = IR_Transformer(self.counter)
                 atom = perchance_ir.lower_block(perchance)
-                perchance = perchance_ir.stmts
-
+                perchance = perchance_ir.stmts + [NakedExp(atom)]
+                
                 match perchance_not:
                     case None:
                         pass 
                     case Cond():
                         perchance_not = self.lower(perchance_not)
                     case [*stmts]:
-                        not_ir = IR_Transformer()
+                        not_ir = IR_Transformer(self.counter)
                         atom = not_ir.lower_block(stmts)  
-                        perchance_not = not_ir.stmts
+                        perchance_not = not_ir.stmts + [NakedExp(atom)]
 
                 exp = Cond(condition, perchance, perchance_not)
                 name = self.make_variable()
@@ -145,6 +164,5 @@ class IR_Transformer:
                 raise ValueError("Get Ratioed")
 
     def make_variable(self) -> str:
-        name = f"${self.timestamp}"
-        self.timestamp += 1
+        name = f"${self.counter.inc()}"
         return name
